@@ -31,9 +31,12 @@
 
 #define MPU6050_RA_WHO_AM_I 0x75
 
+
+
+
 /*........................................................................................................*/
 // MPU6050 Slave Device Address
-const uint8_t MPU6050_Address = 0x68;
+const uint8_t MPU6050_Address = 0b11010010;
 
 
 // MPU6050  configuration register addresses
@@ -73,59 +76,59 @@ void USART_putstring(char* StringPtr);
 void MPU6050_Init()
 {
   _delay_ms(150);
-  i2c_write_byte(MPU6050_SMPLRT_DIV, 0x07);
-  i2c_write_byte(MPU6050_PWR_MGMT_1, 0x01);
-  i2c_write_byte(MPU6050_PWR_MGMT_2, 0x00);
-  i2c_write_byte(MPU6050_CONFIG, 0x00);
-  i2c_write_byte(MPU6050_GYRO_CONFIG, 0x00);//set +/-250 degree/second full scale
-  i2c_write_byte(MPU6050_ACCEL_CONFIG, 0x00);// set +/- 2g full scale
-  i2c_write_byte(MPU6050_FIFO_EN, 0x00);
-  i2c_write_byte(MPU6050_INT_ENABLE, 0x01);
-  i2c_write_byte(MPU6050_SIGNAL_PATH_RESET, 0x00);
-  i2c_write_byte(MPU6050_USER_CTRL, 0x00);
+  i2c_write_byte(MPU6050_Address, MPU6050_SMPLRT_DIV, 0x07);
+  i2c_write_byte(MPU6050_Address, MPU6050_PWR_MGMT_1, 0x01);
+  i2c_write_byte(MPU6050_Address, MPU6050_PWR_MGMT_2, 0x00);
+  i2c_write_byte(MPU6050_Address, MPU6050_CONFIG, 0x00);
+  i2c_write_byte(MPU6050_Address, MPU6050_GYRO_CONFIG, 0x00);//set +/-250 degree/second full scale
+  i2c_write_byte(MPU6050_Address, MPU6050_ACCEL_CONFIG, 0x00);// set +/- 2g full scale
+  i2c_write_byte(MPU6050_Address, MPU6050_FIFO_EN, 0x00);
+  i2c_write_byte(MPU6050_Address, MPU6050_INT_ENABLE, 0x01);
+  i2c_write_byte(MPU6050_Address, MPU6050_SIGNAL_PATH_RESET, 0x00);
+  i2c_write_byte(MPU6050_Address, MPU6050_USER_CTRL, 0x00);
 }
 
 
 
 void mpu6050_read_gyro_X(uint8_t * buff)
 {
-	i2c_read_byte(MPU6050_RA_GYRO_XOUT_H, buff);
-	i2c_read_byte(MPU6050_RA_GYRO_XOUT_L, buff+1);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_XOUT_H, buff);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_XOUT_L, buff+1);
 }
 
 
 void mpu6050_read_gyro_Y(uint8_t * buff)
 {
-	i2c_read_byte(MPU6050_RA_GYRO_YOUT_H, buff);
-	i2c_read_byte(MPU6050_RA_GYRO_YOUT_L, buff+1);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_YOUT_H, buff);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_YOUT_L, buff+1);
 }
 
 
 void mpu6050_read_gyro_Z(uint8_t * buff)
 {
-	i2c_read_byte(MPU6050_RA_GYRO_ZOUT_H, buff);
-	i2c_read_byte(MPU6050_RA_GYRO_ZOUT_L, buff+1);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_ZOUT_H, buff);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_ZOUT_L, buff+1);
 }
 
 
 void mpu6050_read_accel_X(uint8_t * buff)
 {
-	i2c_read_byte(MPU6050_RA_ACCEL_XOUT_H, buff);
-	i2c_read_byte(MPU6050_RA_ACCEL_XOUT_L, buff+1);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_XOUT_H, buff);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_XOUT_L, buff+1);
 }
 
 
 void mpu6050_read_accel_Y(uint8_t * buff)
 {
-	i2c_read_byte(MPU6050_RA_ACCEL_YOUT_H, buff);
-	i2c_read_byte(MPU6050_RA_ACCEL_YOUT_L, buff+1);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_YOUT_H, buff);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_YOUT_L, buff+1);
 }
 
 
 void mpu6050_read_accel_Z(uint8_t * buff)
 {
-	i2c_read_byte(MPU6050_RA_ACCEL_ZOUT_H, buff);
-	i2c_read_byte(MPU6050_RA_ACCEL_ZOUT_L, buff+1);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_ZOUT_H, buff);
+	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_ZOUT_L, buff+1);
 }
 
 
@@ -139,16 +142,19 @@ int main(void)
     i2c_init();
     USART_init();
 
+
+
         uint8_t res;
-        i2c_read_byte(MPU6050_RA_WHO_AM_I, &res);
+        i2c_read_byte(MPU6050_Address, MPU6050_RA_WHO_AM_I, &res);
 		if(res==0x68)
         {
-			PORTD ^= (1<<PD3);
+			PORTD |= (1<<PD3);
 		}
 
 
     while(1)
     {
+            USART_putstring("Hi\n");
 
             ser[0]=0xF7;
 
@@ -203,8 +209,6 @@ int main(void)
 
 
 
-
-
 void USART_init(void)
 {
     UBRR0H = (uint8_t)(BAUD_PRESCALLER>>8);
@@ -214,11 +218,13 @@ void USART_init(void)
     UCSR0C |= (1 << UCSZ01) | (1 << UCSZ00);
 }
 
+
 void USART_send( unsigned char data)
 {
     while(!(UCSR0A & (1<<UDRE0)));
     UDR0 = data;
 }
+
 
 void USART_putstring(char* StringPtr)
 {
