@@ -38,7 +38,7 @@
 #define TW_SR_GCALL_DATA_NACK	0x98
 #define TW_SR_STOP		        0xA0
 #define TW_STATUS_MASK		(_BV(TWS7)|_BV(TWS6)|_BV(TWS5)|_BV(TWS4)|_BV(TWS3))
-#define TW_STATUS		    (TWSR & TW_STATUS_MASK)
+#define TW_STATUS		(TWSR & TW_STATUS_MASK)
 /*..........................R/~W bit in SLA+R/W address field...................*/
 #define TW_READ		1
 #define TW_WRITE	0
@@ -186,6 +186,23 @@ void i2c_read_byte(uint8_t dev_addr, uint8_t reg_addr, uint8_t* data)
     i2c_stop();
 }
 
+
+// read multiple bytes
+void i2c_read_bytes(uint8_t dev_addr, uint8_t first_reg_addr, uint8_t length, uint8_t* data)
+{
+	i2c_start_wait(dev_addr+TW_WRITE); 	//start i2c to write register address
+	i2c_write(first_reg_addr);		//write address of register to read
+	i2c_start(dev_addr+TW_READ);	//restart i2c to start reading
+
+	uint8_t i;
+	for(i=0; i<length-1; i++)
+    {
+		*(data+i) = i2c_readAck();
+	}
+
+	*(data+i) = i2c_readNak();
+    i2c_stop();
+}
 
 void i2c_write_byte(uint8_t dev_addr, uint8_t reg_addr, uint8_t data)
 {

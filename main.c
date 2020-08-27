@@ -22,6 +22,9 @@
 #define MPU6050_RA_ACCEL_ZOUT_H 0x3F
 #define MPU6050_RA_ACCEL_ZOUT_L 0x40
 
+#define MPU6050_RA_TEMP_OUT_H 0x41
+#define MPU6050_RA_TEMP_OUT_L 0x42
+
 #define MPU6050_RA_GYRO_XOUT_H 0x43
 #define MPU6050_RA_GYRO_XOUT_L 0x44
 #define MPU6050_RA_GYRO_YOUT_H 0x45
@@ -32,11 +35,9 @@
 #define MPU6050_RA_WHO_AM_I 0x75
 
 
-
-
 /*........................................................................................................*/
 // MPU6050 Slave Device Address
-const uint8_t MPU6050_Address = 0b11010010;
+const uint8_t MPU6050_Address = (0x68 << 1);
 
 
 // MPU6050  configuration register addresses
@@ -54,15 +55,33 @@ const uint8_t MPU6050_SIGNAL_PATH_RESET  = 0x68;
 
 
 uint8_t ser[14];
-/*...........................................................................................................*/
+/**............................................................................................................**/
+
+typedef struct
+{
+    int16_t axh;
+	int16_t axl;
+	int16_t ayh;
+	int16_t ayl;
+	int16_t azh;
+	int16_t azl;
+
+	int16_t temph;
+	int16_t templ;
+
+	int16_t gxh;
+	int16_t gxl;
+	int16_t gyh;
+	int16_t gyl;
+	int16_t gzh;
+	int16_t gzl;
+
+} mpu_data_t;
+
+/**...........................................................................................................**/
 
 void MPU6050_Init();
-void mpu6050_read_gyro_X(uint8_t * buff);
-void mpu6050_read_gyro_Y(uint8_t * buff);
-void mpu6050_read_gyro_Z(uint8_t * buff);
-void mpu6050_read_accel_X(uint8_t * buff);
-void mpu6050_read_accel_Y(uint8_t * buff);
-void mpu6050_read_accel_Z(uint8_t * buff);
+int read_mpu(mpu_data_t *tmp);
 
 
 void USART_init(void);
@@ -75,7 +94,6 @@ void USART_putstring(char* StringPtr);
 //configure MPU6050
 void MPU6050_Init()
 {
-  _delay_ms(150);
   i2c_write_byte(MPU6050_Address, MPU6050_SMPLRT_DIV, 0x07);
   i2c_write_byte(MPU6050_Address, MPU6050_PWR_MGMT_1, 0x01);
   i2c_write_byte(MPU6050_Address, MPU6050_PWR_MGMT_2, 0x00);
@@ -90,47 +108,32 @@ void MPU6050_Init()
 
 
 
-void mpu6050_read_gyro_X(uint8_t * buff)
+int read_mpu(mpu_data_t *tmp)
 {
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_XOUT_H, buff);
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_XOUT_L, buff+1);
+
+    uint8_t buff[14];
+    i2c_read_bytes(MPU6050_Address, 0x3B, 14, buff);
+
+    uint8_t i=0;
+	tmp->axh=buff[i++];
+	tmp->axl=buff[i++];
+	tmp->ayh=buff[i++];
+	tmp->ayl=buff[i++];
+	tmp->azh=buff[i++];
+	tmp->azl=buff[i++];
+
+	tmp->temph=buff[i++];
+	tmp->templ=buff[i++];
+
+	tmp->gxh=buff[i++];
+	tmp->gxl=buff[i++];
+	tmp->gyh=buff[i++];
+	tmp->gyl=buff[i++];
+	tmp->gzh=buff[i++];
+	tmp->gzl=buff[i++];
+
+	return 0;
 }
-
-
-void mpu6050_read_gyro_Y(uint8_t * buff)
-{
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_YOUT_H, buff);
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_YOUT_L, buff+1);
-}
-
-
-void mpu6050_read_gyro_Z(uint8_t * buff)
-{
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_ZOUT_H, buff);
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_GYRO_ZOUT_L, buff+1);
-}
-
-
-void mpu6050_read_accel_X(uint8_t * buff)
-{
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_XOUT_H, buff);
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_XOUT_L, buff+1);
-}
-
-
-void mpu6050_read_accel_Y(uint8_t * buff)
-{
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_YOUT_H, buff);
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_YOUT_L, buff+1);
-}
-
-
-void mpu6050_read_accel_Z(uint8_t * buff)
-{
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_ZOUT_H, buff);
-	i2c_read_byte(MPU6050_Address, MPU6050_RA_ACCEL_ZOUT_L, buff+1);
-}
-
 
 
 int main(void)
@@ -138,68 +141,46 @@ int main(void)
 
     DDRD |= (1<<DDD3);
 
-    MPU6050_Init();
     i2c_init();
     USART_init();
+    MPU6050_Init();
 
+    uint8_t res;
+    i2c_read_byte(MPU6050_Address, MPU6050_RA_WHO_AM_I, &res);
+    if(res==0x68)
+    {
+        PORTD |= (1<<PD3);
+    }
 
-
-        uint8_t res;
-        i2c_read_byte(MPU6050_Address, MPU6050_RA_WHO_AM_I, &res);
-		if(res==0x68)
-        {
-			PORTD |= (1<<PD3);
-		}
-
+    uint8_t u;
 
     while(1)
     {
-            USART_putstring("Hi\n");
+
+            mpu_data_t tmp;
+            read_mpu(&tmp);
 
             ser[0]=0xF7;
 
-            uint8_t tmp1[2], tmp2[2], tmp3[2], tmp4[2], tmp5[2], tmp6[2];
+            ser[1]= tmp.axh;     // Ax high byte
+			ser[2]= tmp.axl;     // Ax low byte
+			ser[3]= tmp.ayh;    // Ay high byte
+			ser[4]= tmp.ayl;    // Ay low byte
+			ser[5]= tmp.azh;     //Az high byte
+			ser[6]= tmp.azl;     //Az low byte
 
-            mpu6050_read_gyro_X(tmp1);
-            ser[1]= tmp1[0];     // high byte
-			ser[2]= tmp1[1];     // low byte
-
-			mpu6050_read_gyro_Y(tmp2);
-			ser[3]= tmp2[0];    // high byte
-			ser[4]= tmp2[1];    // low byte
-
-			mpu6050_read_gyro_Z(tmp3);
-			ser[5]= tmp3[0];     // high byte
-			ser[6]= tmp3[1];     // low byte
-
-
-
-			mpu6050_read_accel_X(tmp4);
-			ser[7]= tmp4[0];     // high byte
-			ser[8]= tmp4[1];     // low byte
-
-            mpu6050_read_accel_Y(tmp5);
-            ser[9]= tmp5[0];     // high byte
-			ser[10]= tmp5[1];    // low byte
-
-            mpu6050_read_accel_Z(tmp6);
-            ser[11]= tmp6[0];     // high byte
-			ser[12]= tmp6[1];    // low byte
+			ser[7]= tmp.gxh;     //Gx high byte
+			ser[8]= tmp.gxl;     //Gx low byte
+            ser[9]= tmp.gyh;     //Gy high byte
+			ser[10]= tmp.gyl;    //Gy low byte
+            ser[11]= tmp.gzh;     // high byte
+			ser[12]= tmp.gzl;    // low byte
 
 
-			USART_send(ser[0]);
-			USART_send(ser[1]);
-			USART_send(ser[2]);
-			USART_send(ser[3]);
-			USART_send(ser[4]);
-			USART_send(ser[5]);
-			USART_send(ser[6]);
-			USART_send(ser[7]);
-			USART_send(ser[8]);
-			USART_send(ser[9]);
-			USART_send(ser[10]);
-			USART_send(ser[11]);
-			USART_send(ser[12]);
+			for(u=0; u<13; u++)
+            {
+                USART_send(ser[u]);
+            }
 
             _delay_ms(10);
     }
