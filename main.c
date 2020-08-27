@@ -59,22 +59,15 @@ uint8_t ser[14];
 
 typedef struct
 {
-    int16_t axh;
-	int16_t axl;
-	int16_t ayh;
-	int16_t ayl;
-	int16_t azh;
-	int16_t azl;
+    int16_t Ax;
+	int16_t Ay;
+	int16_t Az;
 
-	int16_t temph;
-	int16_t templ;
+	int16_t temp;
 
-	int16_t gxh;
-	int16_t gxl;
-	int16_t gyh;
-	int16_t gyl;
-	int16_t gzh;
-	int16_t gzl;
+	int16_t Gx;
+	int16_t Gy;
+	int16_t Gz;
 
 } mpu_data_t;
 
@@ -112,25 +105,36 @@ int read_mpu(mpu_data_t *tmp)
 {
 
     uint8_t buff[14];
+    int16_t res_16;
     i2c_read_bytes(MPU6050_Address, 0x3B, 14, buff);
 
-    uint8_t i=0;
-	tmp->axh=buff[i++];
-	tmp->axl=buff[i++];
-	tmp->ayh=buff[i++];
-	tmp->ayl=buff[i++];
-	tmp->azh=buff[i++];
-	tmp->azl=buff[i++];
+    res_16=(int16_t)buff[0];
+    res_16=((res_16 << 8) & 0xFF00)| buff[1];
+	tmp->Ax=res_16;
 
-	tmp->temph=buff[i++];
-	tmp->templ=buff[i++];
+    res_16=(int16_t)buff[2];
+    res_16=((res_16 << 8) & 0xFF00)| buff[3];
+	tmp->Ay=res_16;
 
-	tmp->gxh=buff[i++];
-	tmp->gxl=buff[i++];
-	tmp->gyh=buff[i++];
-	tmp->gyl=buff[i++];
-	tmp->gzh=buff[i++];
-	tmp->gzl=buff[i++];
+    res_16=(int16_t)buff[4];
+    res_16=((res_16 << 8) & 0xFF00)| buff[5];
+	tmp->Az=res_16;
+
+	res_16=(int16_t)buff[6];
+    res_16=((res_16 << 8) & 0xFF00)| buff[7];
+	tmp->temp=res_16;
+
+	res_16=(int16_t)buff[8];
+    res_16=((res_16 << 8) & 0xFF00)| buff[9];
+	tmp->Gx=res_16;
+
+    res_16=(int16_t)buff[10];
+    res_16=((res_16 << 8) & 0xFF00)| buff[11];
+	tmp->Gy=res_16;
+
+    res_16=(int16_t)buff[12];
+    res_16=((res_16 << 8) & 0xFF00)| buff[13];
+	tmp->Gz=res_16;
 
 	return 0;
 }
@@ -152,35 +156,15 @@ int main(void)
         PORTD |= (1<<PD3);
     }
 
-    uint8_t u;
 
     while(1)
     {
-
+            char print_buf1[100];
             mpu_data_t tmp;
             read_mpu(&tmp);
 
-            ser[0]=0xF7;
-
-            ser[1]= tmp.axh;     // Ax high byte
-			ser[2]= tmp.axl;     // Ax low byte
-			ser[3]= tmp.ayh;    // Ay high byte
-			ser[4]= tmp.ayl;    // Ay low byte
-			ser[5]= tmp.azh;     //Az high byte
-			ser[6]= tmp.azl;     //Az low byte
-
-			ser[7]= tmp.gxh;     //Gx high byte
-			ser[8]= tmp.gxl;     //Gx low byte
-            ser[9]= tmp.gyh;     //Gy high byte
-			ser[10]= tmp.gyl;    //Gy low byte
-            ser[11]= tmp.gzh;     // high byte
-			ser[12]= tmp.gzl;    // low byte
-
-
-			for(u=0; u<13; u++)
-            {
-                USART_send(ser[u]);
-            }
+            sprintf(print_buf1, "Ax= %d    Ay= %d    Az= %d\t\t\tGx= %d     Gy= %d      Gz= %d\n", tmp.Ax, tmp.Ay, tmp.Az, tmp.Gx, tmp.Gy, tmp.Gz);
+            USART_putstring(print_buf1);
 
             _delay_ms(10);
     }
