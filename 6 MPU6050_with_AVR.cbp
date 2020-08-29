@@ -15,6 +15,9 @@
 				<Compiler>
 					<Add option="-Os" />
 				</Compiler>
+				<Linker>
+					<Add library="../../../Downloads/Float_Bug/Float_Bug/Float_Bug.atsln" />
+				</Linker>
 			</Target>
 			<Environment>
 				<Variable name="MCU" value="atmega328p" />

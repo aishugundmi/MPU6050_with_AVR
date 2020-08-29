@@ -34,8 +34,10 @@
 
 #define MPU6050_RA_WHO_AM_I 0x75
 
+#define ACCEL_RANGE		((float) 16384)
+#define GYRO_RANGE		((float) 131)
 
-/*........................................................................................................*/
+/**........................................................................................................*/
 // MPU6050 Slave Device Address
 const uint8_t MPU6050_Address = (0x68 << 1);
 
@@ -55,7 +57,9 @@ const uint8_t MPU6050_SIGNAL_PATH_RESET  = 0x68;
 
 
 uint8_t ser[14];
-/**............................................................................................................**/
+
+float Atmp = 0;
+/**............................................................................................................*/
 
 typedef struct
 {
@@ -71,7 +75,7 @@ typedef struct
 
 } mpu_data_t;
 
-/**...........................................................................................................**/
+/**...........................................................................................................*/
 
 void MPU6050_Init();
 int read_mpu(mpu_data_t *tmp);
@@ -81,7 +85,7 @@ void USART_init(void);
 void USART_send(unsigned char data);
 void USART_putstring(char* StringPtr);
 
-/*...........................................................................................................*/
+/**.............................................................................................................*/
 
 
 //configure MPU6050
@@ -105,37 +109,27 @@ int read_mpu(mpu_data_t *tmp)
 {
 
     uint8_t buff[14];
-    int16_t res_16;
     i2c_read_bytes(MPU6050_Address, 0x3B, 14, buff);
 
-    res_16=(int16_t)buff[0];
-    res_16=((res_16 << 8) & 0xFF00)| buff[1];
-	tmp->Ax=res_16;
+    tmp->Ax= ((((uint16_t)buff[0]<<8)&0xFF00)|buff[1]);
+    tmp->Ay= ((((uint16_t)buff[2]<<8)&0xFF00)|buff[3]);
+    tmp->Az= ((((uint16_t)buff[4]<<8)&0xFF00)|buff[5]);
 
-    res_16=(int16_t)buff[2];
-    res_16=((res_16 << 8) & 0xFF00)| buff[3];
-	tmp->Ay=res_16;
+	tmp->temp= ((((uint16_t)buff[6]<<8)&0xFF00)|buff[7]);
 
-    res_16=(int16_t)buff[4];
-    res_16=((res_16 << 8) & 0xFF00)| buff[5];
-	tmp->Az=res_16;
+	tmp->Gx= ((((uint16_t)buff[8]<<8)&0xFF00)|buff[9]);
+	tmp->Gy= ((((uint16_t)buff[10]<<8)&0xFF00)|buff[11]);
+	tmp->Gz= ((((uint16_t)buff[12]<<8)&0xFF00)|buff[13]);
 
-	res_16=(int16_t)buff[6];
-    res_16=((res_16 << 8) & 0xFF00)| buff[7];
-	tmp->temp=res_16;
 
-	res_16=(int16_t)buff[8];
-    res_16=((res_16 << 8) & 0xFF00)| buff[9];
-	tmp->Gx=res_16;
+    float w_Gz = (tmp->Gz * (250.0/32768.0));
+    float angle_Gz = Atmp + (w_Gz * 0.02);
 
-    res_16=(int16_t)buff[10];
-    res_16=((res_16 << 8) & 0xFF00)| buff[11];
-	tmp->Gy=res_16;
+    char print_buf1[100];
+    sprintf(print_buf1, "angle_Gz= %d\n", (int16_t)angle_Gz);
+    USART_putstring(print_buf1);
 
-    res_16=(int16_t)buff[12];
-    res_16=((res_16 << 8) & 0xFF00)| buff[13];
-	tmp->Gz=res_16;
-
+    Atmp = angle_Gz;
 	return 0;
 }
 
@@ -159,14 +153,14 @@ int main(void)
 
     while(1)
     {
-            char print_buf1[100];
+
             mpu_data_t tmp;
             read_mpu(&tmp);
 
-            sprintf(print_buf1, "Ax= %d    Ay= %d    Az= %d\t\t\tGx= %d     Gy= %d      Gz= %d\n", tmp.Ax, tmp.Ay, tmp.Az, tmp.Gx, tmp.Gy, tmp.Gz);
-            USART_putstring(print_buf1);
+       //     sprintf(print_buf1, "Ax= %d    Ay= %d    Az= %d\t\t\tGx= %d     Gy= %d      Gz= %d\n", tmp.Ax, tmp.Ay, tmp.Az, tmp.Gx, tmp.Gy, tmp.Gz);
+      //      USART_putstring(print_buf1);
 
-            _delay_ms(10);
+            _delay_ms(20);
     }
 
     return 0;
