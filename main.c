@@ -57,8 +57,8 @@ const uint8_t MPU6050_SIGNAL_PATH_RESET  = 0x68;
 
 
 uint8_t ser[14];
+char print_buf1[100];
 
-float Atmp = 0;
 /**............................................................................................................*/
 
 typedef struct
@@ -78,6 +78,7 @@ typedef struct
 /**...........................................................................................................*/
 
 void MPU6050_Init();
+int read_mpu_offset(mpu_data_t *tmp);
 int read_mpu(mpu_data_t *tmp);
 
 
@@ -104,32 +105,21 @@ void MPU6050_Init()
 }
 
 
-
 int read_mpu(mpu_data_t *tmp)
 {
-
     uint8_t buff[14];
     i2c_read_bytes(MPU6050_Address, 0x3B, 14, buff);
 
-    tmp->Ax= ((((uint16_t)buff[0]<<8)&0xFF00)|buff[1]);
-    tmp->Ay= ((((uint16_t)buff[2]<<8)&0xFF00)|buff[3]);
-    tmp->Az= ((((uint16_t)buff[4]<<8)&0xFF00)|buff[5]);
+    tmp->Ax = ((((uint16_t)buff[0] << 8) & 0xFF00) | buff[1]);
+    tmp->Ay = ((((uint16_t)buff[2] << 8) & 0xFF00) | buff[3]);
+    tmp->Az = ((((uint16_t)buff[4] << 8) & 0xFF00) | buff[5]);
 
-	tmp->temp= ((((uint16_t)buff[6]<<8)&0xFF00)|buff[7]);
+	tmp->temp = ((((uint16_t)buff[6] << 8) & 0xFF00) | buff[7]);
 
-	tmp->Gx= ((((uint16_t)buff[8]<<8)&0xFF00)|buff[9]);
-	tmp->Gy= ((((uint16_t)buff[10]<<8)&0xFF00)|buff[11]);
-	tmp->Gz= ((((uint16_t)buff[12]<<8)&0xFF00)|buff[13]);
+	tmp->Gx = ((((uint16_t)buff[8] << 8) & 0xFF00) | buff[9]);
+	tmp->Gy = ((((uint16_t)buff[10] << 8) & 0xFF00) | buff[11]);
+	tmp->Gz = ((((uint16_t)buff[12] << 8) & 0xFF00) | buff[13]);
 
-
-    float w_Gz = (tmp->Gz * (250.0/32768.0));
-    float angle_Gz = Atmp + (w_Gz * 0.02);
-
-    char print_buf1[100];
-    sprintf(print_buf1, "angle_Gz= %d\n", (int16_t)angle_Gz);
-    USART_putstring(print_buf1);
-
-    Atmp = angle_Gz;
 	return 0;
 }
 
@@ -150,16 +140,34 @@ int main(void)
         PORTD |= (1<<PD3);
     }
 
+    mpu_data_t tmp;
+
+    uint16_t z=0;
+    float Atmp = 0;
+    int32_t add_z=0;
+
+    while(z<1000)
+    {
+        read_mpu(&tmp);
+        add_z += tmp.Gz;
+
+        _delay_ms(4);
+        z++;
+    }
+    int16_t avg_offset =  (add_z/1000);
+
 
     while(1)
     {
-
-            mpu_data_t tmp;
             read_mpu(&tmp);
 
-       //     sprintf(print_buf1, "Ax= %d    Ay= %d    Az= %d\t\t\tGx= %d     Gy= %d      Gz= %d\n", tmp.Ax, tmp.Ay, tmp.Az, tmp.Gx, tmp.Gy, tmp.Gz);
-      //      USART_putstring(print_buf1);
+            float w_Gz = (tmp.Gz - avg_offset) * (250.0/32768.0);
+            float angle_Gz = Atmp + (w_Gz * 0.02);
 
+            sprintf(print_buf1, "Angle_Gz= %d\n", (int16_t)angle_Gz);
+            USART_putstring(print_buf1);
+
+            Atmp = angle_Gz;
             _delay_ms(20);
     }
 
