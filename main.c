@@ -58,7 +58,7 @@ const uint8_t MPU6050_SIGNAL_PATH_RESET  = 0x68;
 
 uint8_t ser[14];
 char print_buf1[100];
-
+volatile uint8_t int_rupt = 0;
 /**............................................................................................................*/
 
 typedef struct
@@ -87,11 +87,17 @@ void USART_putstring(char* StringPtr);
 
 /**.............................................................................................................*/
 
+ISR(INT0_vect)
+{
+	int_rupt = 1;
+}
+
+
 
 //configure MPU6050
 void MPU6050_Init()
 {
-    i2c_write_byte(MPU6050_Address, MPU6050_SMPLRT_DIV, 0x79);
+    i2c_write_byte(MPU6050_Address, MPU6050_SMPLRT_DIV, 0x4F);  //(8000/100)-1=79
     i2c_write_byte(MPU6050_Address, MPU6050_PWR_MGMT_1, 0x01);
     i2c_write_byte(MPU6050_Address, MPU6050_PWR_MGMT_2, 0x00);
     i2c_write_byte(MPU6050_Address, MPU6050_CONFIG, 0x00);
@@ -130,7 +136,12 @@ int read_mpu(mpu_data_t *tmp)
 int main(void)
 {
 
+    DDRD |= (0<<PD2);    //PORTD as input INT0
     DDRD |= (1<<DDD3);
+
+    EICRA |= (1 << ISC00) | (1 << ISC00);    // set INT0 to trigger on the rising edge
+    EIMSK |= (1 << INT0);                    // Turns on INT0
+	sei();			                         // Enable Global Interrupt
 
     i2c_init();
     USART_init();
@@ -140,7 +151,7 @@ int main(void)
     i2c_read_byte(MPU6050_Address, MPU6050_RA_WHO_AM_I, &res);
     if(res==0x68)
     {
-        PORTD |= (1<<PD3);
+      //  PORTD |= (1<<PD3);
     }
 
     mpu_data_t tmp;
@@ -159,19 +170,23 @@ int main(void)
     }
     int16_t avg_offset =  (add_z/1000);
 
+    int16_t count=0;
 
     while(1)
     {
-            read_mpu(&tmp);
+        if(int_rupt == 1)
+        {
+                int_rupt = 0;
+                read_mpu(&tmp);
 
-            float w_Gz = (tmp.Gz - avg_offset) * (2000.0/32768.0);
-            float angle_Gz = Atmp + (w_Gz * 0.01);
+                float w_Gz = (tmp.Gz - avg_offset) * (2000.0/32768.0);
+                float angle_Gz = Atmp + (w_Gz * 0.01);
 
-            sprintf(print_buf1, "Angle_Gz= %d\n", (int16_t)angle_Gz);
-            USART_putstring(print_buf1);
+                sprintf(print_buf1, "count = %d\t Angle_Gz= %d\n", count++, (int16_t)angle_Gz);
+                USART_putstring(print_buf1);
 
-            Atmp = angle_Gz;
-            _delay_ms(10);
+                Atmp = angle_Gz;
+        }
     }
 
     return 0;

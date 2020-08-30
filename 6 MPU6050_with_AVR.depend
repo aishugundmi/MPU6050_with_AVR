@@ -9,7 +9,7 @@
 
 1598508519 c:\users\aishwarya\desktop\avr_code\6 mpu6050_with_avr\i2c.h
 
-1598774676 source:c:\users\aishwarya\desktop\avr_code\6 mpu6050_with_avr\main.c
+1598785535 source:c:\users\aishwarya\desktop\avr_code\6 mpu6050_with_avr\main.c
 	<avr/io.h>
 	<util/delay.h>
 	<avr/interrupt.h>
