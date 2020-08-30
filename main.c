@@ -37,7 +37,7 @@
 #define ACCEL_RANGE		((float) 16384)
 #define GYRO_RANGE		((float) 131)
 
-/**........................................................................................................*/
+/**............................................................................................................*/
 // MPU6050 Slave Device Address
 const uint8_t MPU6050_Address = (0x68 << 1);
 
@@ -75,10 +75,9 @@ typedef struct
 
 } mpu_data_t;
 
-/**...........................................................................................................*/
+/**............................................................................................................*/
 
 void MPU6050_Init();
-int read_mpu_offset(mpu_data_t *tmp);
 int read_mpu(mpu_data_t *tmp);
 
 
@@ -92,16 +91,17 @@ void USART_putstring(char* StringPtr);
 //configure MPU6050
 void MPU6050_Init()
 {
-  i2c_write_byte(MPU6050_Address, MPU6050_SMPLRT_DIV, 0x07);
-  i2c_write_byte(MPU6050_Address, MPU6050_PWR_MGMT_1, 0x01);
-  i2c_write_byte(MPU6050_Address, MPU6050_PWR_MGMT_2, 0x00);
-  i2c_write_byte(MPU6050_Address, MPU6050_CONFIG, 0x00);
-  i2c_write_byte(MPU6050_Address, MPU6050_GYRO_CONFIG, 0x00);//set +/-250 degree/second full scale
-  i2c_write_byte(MPU6050_Address, MPU6050_ACCEL_CONFIG, 0x00);// set +/- 2g full scale
-  i2c_write_byte(MPU6050_Address, MPU6050_FIFO_EN, 0x00);
-  i2c_write_byte(MPU6050_Address, MPU6050_INT_ENABLE, 0x01);
-  i2c_write_byte(MPU6050_Address, MPU6050_SIGNAL_PATH_RESET, 0x00);
-  i2c_write_byte(MPU6050_Address, MPU6050_USER_CTRL, 0x00);
+    i2c_write_byte(MPU6050_Address, MPU6050_SMPLRT_DIV, 0x79);
+    i2c_write_byte(MPU6050_Address, MPU6050_PWR_MGMT_1, 0x01);
+    i2c_write_byte(MPU6050_Address, MPU6050_PWR_MGMT_2, 0x00);
+    i2c_write_byte(MPU6050_Address, MPU6050_CONFIG, 0x00);
+    //  i2c_write_byte(MPU6050_Address, MPU6050_GYRO_CONFIG, 0x00);//set +/-250 degree/second full scale
+    i2c_write_byte(MPU6050_Address, MPU6050_GYRO_CONFIG, (1<<3)|(1<<4));//set +/-2000degree/second full scale
+    i2c_write_byte(MPU6050_Address, MPU6050_ACCEL_CONFIG, 0x00);// set +/- 2g full scale
+    i2c_write_byte(MPU6050_Address, MPU6050_FIFO_EN, 0x00);
+    i2c_write_byte(MPU6050_Address, MPU6050_INT_ENABLE, 0x01);
+    i2c_write_byte(MPU6050_Address, MPU6050_SIGNAL_PATH_RESET, 0x00);
+    i2c_write_byte(MPU6050_Address, MPU6050_USER_CTRL, 0x00);
 }
 
 
@@ -122,6 +122,9 @@ int read_mpu(mpu_data_t *tmp)
 
 	return 0;
 }
+
+/**............................................................................................................*/
+
 
 
 int main(void)
@@ -161,20 +164,21 @@ int main(void)
     {
             read_mpu(&tmp);
 
-            float w_Gz = (tmp.Gz - avg_offset) * (250.0/32768.0);
-            float angle_Gz = Atmp + (w_Gz * 0.02);
+            float w_Gz = (tmp.Gz - avg_offset) * (2000.0/32768.0);
+            float angle_Gz = Atmp + (w_Gz * 0.01);
 
             sprintf(print_buf1, "Angle_Gz= %d\n", (int16_t)angle_Gz);
             USART_putstring(print_buf1);
 
             Atmp = angle_Gz;
-            _delay_ms(20);
+            _delay_ms(10);
     }
 
     return 0;
 }
 
 
+/**..............................................................................................................*/
 
 void USART_init(void)
 {
@@ -199,10 +203,5 @@ void USART_putstring(char* StringPtr)
     USART_send(*StringPtr);
     StringPtr++;}
 }
-
-
-
-
-
 
 
