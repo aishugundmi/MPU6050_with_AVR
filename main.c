@@ -158,12 +158,12 @@ int main(void)
 
     mpu_data_t tmp;
 
+    uint8_t var=0;
     uint16_t z=0;
     int32_t add_Gx=0, add_Gy=0, add_Gz=0;
     int16_t Gx_offset = 0, Gy_offset = 0, Gz_offset = 0;
     int16_t angle_Gx = 0, angle_Gy = 0, angle_Gz = 0;
     int32_t agl_Gx = 0, agl_Gy = 0, agl_Gz = 0;
-
     int16_t roll = 0, pitch = 0;
 
     while(z < 1000)
@@ -185,6 +185,7 @@ int main(void)
         if(int_rupt == 1)
         {
                 int_rupt = 0;
+
                 read_mpu(&tmp);
 
          //       w_Gx = (tmp.Gx - Gx_offset) * (2000.0/32768.0);
@@ -194,20 +195,22 @@ int main(void)
                 angle_Gy = (((int32_t)(tmp.Gy - Gy_offset) * 20000UL)/32768UL);
                 angle_Gz = (((int32_t)(tmp.Gz - Gz_offset) * 20000UL)/32768UL);
 
-                agl_Gx += angle_Gx;
-                agl_Gy += angle_Gy;
+                agl_Gx -= angle_Gx;
+                agl_Gy -= angle_Gy;
                 agl_Gz += angle_Gz;
 
-
                 // Calculating Roll and Pitch from the accelerometer data
-                roll = (atan2(-tmp.Ay, tmp.Az) * 180.0)/PI;
-                pitch = (atan2(tmp.Ax, sqrt(tmp.Ay*tmp.Ay + tmp.Az*tmp.Az)) * 180.0)/PI;
+                roll = (atan2((double)(-tmp.Ay), (double)tmp.Az) * 180.0)/PI;
+                pitch = (atan2((double)tmp.Ax, sqrt((double) tmp.Ay*tmp.Ay +  (double) tmp.Az*tmp.Az)) * 180.0)/PI;
 
+                var++;
 
-               // sprintf(print_buf1, "A_Gx= %ld     A_Gy= %ld      A_Gz= %ld\n", (agl_Gx/1000), (agl_Gy/1000),(agl_Gz/1000));
-
-               sprintf(print_buf1, "A_Gx= %ld     roll= %d     A_Gy= %ld      pitch= %d\n", (agl_Gx/1000), roll, (agl_Gy/1000), pitch);
+            if(var == 10)
+            {
+               sprintf(print_buf1, "Ar= %d     Ap= %d     Gr= %ld       Gp= %ld      Gy= %ld  deg\n", roll, pitch, (agl_Gx/1000),(agl_Gy/1000), (agl_Gz/1000));
                USART_putstring(print_buf1);
+               var = 0;
+            }
         }
     }
 
