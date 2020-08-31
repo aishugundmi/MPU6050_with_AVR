@@ -5,7 +5,7 @@ CC=avr-gcc
 OBJCOPY=avr-objcopy
 MMCU=atmega328p
 COM=COM6
-CFLAGS=-mmcu=$(MMCU) -Wall -std=c99
+CFLAGS=-mmcu=$(MMCU) -Wall -std=c99 -lm
 
 $(PROJECT).hex: $(PROJECT).out
 	$(OBJCOPY) -j .text -j .data -O ihex $(PROJECT).out $(PROJECT).hex

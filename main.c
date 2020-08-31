@@ -6,13 +6,15 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-
+#include <math.h>
 
 #include "i2c.h"
 
 
 #define BAUDRATE 115200UL
-#define BAUD_PRESCALLER 16
+//#define BAUD_PRESCALLER 16
+
+#define BAUD_PRESCALLER 1
 
 
 #define MPU6050_RA_ACCEL_XOUT_H 0x3B
@@ -36,7 +38,7 @@
 
 #define ACCEL_RANGE		((float) 16384)
 #define GYRO_RANGE		((float) 131)
-
+#define PI  3.141592
 /**............................................................................................................*/
 // MPU6050 Slave Device Address
 const uint8_t MPU6050_Address = (0x68 << 1);
@@ -139,7 +141,7 @@ int main(void)
     DDRD |= (0<<PD2);    //PORTD as input INT0
     DDRD |= (1<<DDD3);
 
-    EICRA |= (1 << ISC00) | (1 << ISC00);    // set INT0 to trigger on the rising edge
+    EICRA |= (1 << ISC00) | (1 << ISC01);    // set INT0 to trigger on the rising edge
     EIMSK |= (1 << INT0);                    // Turns on INT0
 	sei();			                         // Enable Global Interrupt
 
@@ -151,26 +153,32 @@ int main(void)
     i2c_read_byte(MPU6050_Address, MPU6050_RA_WHO_AM_I, &res);
     if(res==0x68)
     {
-      //  PORTD |= (1<<PD3);
+        PORTD |= (1<<PD3);
     }
 
     mpu_data_t tmp;
 
     uint16_t z=0;
-    float Atmp = 0;
-    int32_t add_z=0;
+    int32_t add_Gx=0, add_Gy=0, add_Gz=0;
+    int16_t Gx_offset = 0, Gy_offset = 0, Gz_offset = 0;
+    int16_t angle_Gx = 0, angle_Gy = 0, angle_Gz = 0;
+    int32_t agl_Gx = 0, agl_Gy = 0, agl_Gz = 0;
 
-    while(z<1000)
+    int16_t roll = 0, pitch = 0;
+
+    while(z < 1000)
     {
         read_mpu(&tmp);
-        add_z += tmp.Gz;
+        add_Gx += tmp.Gx;
+        add_Gy += tmp.Gy;
+        add_Gz += tmp.Gz;
 
         _delay_ms(4);
         z++;
     }
-    int16_t avg_offset =  (add_z/1000);
-
-    int16_t count=0;
+    Gx_offset =  (add_Gx/1000);
+    Gy_offset =  (add_Gy/1000);
+    Gz_offset =  (add_Gz/1000);
 
     while(1)
     {
@@ -179,13 +187,27 @@ int main(void)
                 int_rupt = 0;
                 read_mpu(&tmp);
 
-                float w_Gz = (tmp.Gz - avg_offset) * (2000.0/32768.0);
-                float angle_Gz = Atmp + (w_Gz * 0.01);
+         //       w_Gx = (tmp.Gx - Gx_offset) * (2000.0/32768.0);
+         //       angle_Gx += (w_Gx * 0.01 *1000);
 
-                sprintf(print_buf1, "count = %d\t Angle_Gz= %d\n", count++, (int16_t)angle_Gz);
-                USART_putstring(print_buf1);
+                angle_Gx = (((int32_t)(tmp.Gx - Gx_offset) * 20000UL)/32768UL);
+                angle_Gy = (((int32_t)(tmp.Gy - Gy_offset) * 20000UL)/32768UL);
+                angle_Gz = (((int32_t)(tmp.Gz - Gz_offset) * 20000UL)/32768UL);
 
-                Atmp = angle_Gz;
+                agl_Gx += angle_Gx;
+                agl_Gy += angle_Gy;
+                agl_Gz += angle_Gz;
+
+
+                // Calculating Roll and Pitch from the accelerometer data
+                roll = (atan2(-tmp.Ay, tmp.Az) * 180.0)/PI;
+                pitch = (atan2(tmp.Ax, sqrt(tmp.Ay*tmp.Ay + tmp.Az*tmp.Az)) * 180.0)/PI;
+
+
+               // sprintf(print_buf1, "A_Gx= %ld     A_Gy= %ld      A_Gz= %ld\n", (agl_Gx/1000), (agl_Gy/1000),(agl_Gz/1000));
+
+               sprintf(print_buf1, "A_Gx= %ld     roll= %d     A_Gy= %ld      pitch= %d\n", (agl_Gx/1000), roll, (agl_Gy/1000), pitch);
+               USART_putstring(print_buf1);
         }
     }
 
