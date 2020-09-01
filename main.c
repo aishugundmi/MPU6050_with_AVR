@@ -191,7 +191,7 @@ int main(void)
     Gx_offset =  (add_Gx/500);
     Gy_offset =  (add_Gy/500);
     Gz_offset =  (add_Gz/500);
-	int_rupt = 1;
+
     while(1)
     {
         if(int_rupt == 1)
